@@ -61,7 +61,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Stage _stage = Stage.list;
 
   // Contacts
@@ -88,12 +88,22 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadContacts();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back from the system Settings screen: pick up a newly granted permission.
+    if (state == AppLifecycleState.resumed && _permissionGranted != true) {
+      _loadContacts(ask: false);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     _outgoingTimer?.cancel();
     _ringTimeout?.cancel();
@@ -146,11 +156,11 @@ class _HomePageState extends State<HomePage> {
 
   // --------------------------------------------------------------- contacts
 
-  Future<void> _loadContacts() async {
+  Future<void> _loadContacts({bool ask = true}) async {
     try {
       var granted =
           (await _native.invokeMethod<bool>('hasContactsPermission')) ?? false;
-      if (!granted) {
+      if (!granted && ask) {
         granted =
             (await _native.invokeMethod<bool>('requestContactsPermission')) ?? false;
       }
@@ -172,6 +182,29 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (_) {
       if (mounted) setState(() => _permissionGranted = false);
+    }
+  }
+
+  /// "Allow access" button: ask again; if Android will no longer show the
+  /// dialog (denied twice), send the user to the app's Settings page.
+  Future<void> _onAllowPressed() async {
+    await _loadContacts(ask: true);
+    if (_permissionGranted == true || !mounted) return;
+    var canAsk = false;
+    try {
+      canAsk = (await _native.invokeMethod<bool>('shouldShowRationale')) ?? false;
+    } catch (_) {}
+    if (canAsk) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contacts permission is needed to show your contacts.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Turn on Contacts under Permissions, then come back.')),
+      );
+      try {
+        await _native.invokeMethod('openAppSettings');
+      } catch (_) {}
     }
   }
 
@@ -398,7 +431,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: _loadContacts,
+                onPressed: _onAllowPressed,
                 child: const Text('Allow access'),
               ),
             ],
@@ -526,6 +559,8 @@ class _HomePageState extends State<HomePage> {
   Widget _callBackground(Widget child) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,

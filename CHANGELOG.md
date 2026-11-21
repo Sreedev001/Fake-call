@@ -3,6 +3,12 @@
 Version format: `MAJOR.MINOR.PATCH+BUILD` in `src/pubspec.yaml`.
 Old source snapshots live in `versions/vX.Y.Z/` (restore by copying back to `src/`).
 
+## 1.1.1+3
+- Fix: "Allow access" button did nothing after the permission was denied twice. It now
+  re-asks, and if Android blocks the dialog it opens the app's Settings page; contacts load
+  automatically when you return.
+- Fix: call screens only filled the left ~third of the screen; they are now full width.
+
 ## 1.1.0+2
 - Renamed app to "Contact Book" (was "Fake Call"), new neutral blue contacts icon.
 - Reads the phone's real contacts (native Kotlin bridge, READ_CONTACTS) and shows them

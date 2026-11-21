@@ -1,10 +1,13 @@
 package com.example.contact_book
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.ContactsContract
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -24,10 +27,28 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "hasContactsPermission" -> result.success(hasContactsPermission())
 
+                    "shouldShowRationale" -> {
+                        val show = Build.VERSION.SDK_INT >= 23 &&
+                            shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
+                        result.success(show)
+                    }
+
+                    "openAppSettings" -> {
+                        try {
+                            val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            i.data = Uri.fromParts("package", packageName, null)
+                            startActivity(i)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+
                     "requestContactsPermission" -> {
                         if (hasContactsPermission()) {
                             result.success(true)
                         } else {
+                            pendingPermResult?.success(false)
                             pendingPermResult = result
                             requestPermissions(
                                 arrayOf(Manifest.permission.READ_CONTACTS),

@@ -53,7 +53,7 @@ AI_CONTEXT.md                 this file
 - Contacts and proximity are done with our own Kotlin MethodChannel
   (`contact_book/native`) instead of plugins, to avoid Kotlin/AGP/namespace plugin breakage.
   Methods: `hasContactsPermission`, `requestContactsPermission`, `getContacts`,
-  `setProximityScreenOff({on: bool})`.
+  `setProximityScreenOff({on: bool})`, `shouldShowRationale`, `openAppSettings`.
 - Before adding any plugin, check it works with Kotlin 1.8 / AGP 8.1 (or raise the Kotlin
   version in the generated `android/settings.gradle` via sed in the workflow).
 
